@@ -1,0 +1,192 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: minver-linux-x86_64
+            bin_path: target/release/minver
+            archive_ext: tar.gz
+          - os: macos-latest
+            artifact_name: minver-macos-arm64
+            bin_path: target/release/minver
+            archive_ext: tar.gz
+          - os: windows-latest
+            artifact_name: minver-windows-x86_64
+            bin_path: target/release/minver.exe
+            archive_ext: zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF##*/}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set package versions from tag
+        shell: python
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          import os
+          import pathlib
+          import re
+
+          version = os.environ["VERSION"]
+          for path in ["crates/core/Cargo.toml", "crates/cli/Cargo.toml"]:
+              p = pathlib.Path(path)
+              text = p.read_text()
+              text = re.sub(r'^version\s*=\s*"[^"]+"', f'version = "{version}"', text, count=1, flags=re.MULTILINE)
+              p.write_text(text)
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build (release)
+        run: cargo build --workspace --release --locked
+
+      - name: Test (Linux only)
+        if: runner.os == 'Linux'
+        run: cargo test --workspace --locked
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          artifact="${{ matrix.artifact_name }}"
+          mkdir -p dist/"${artifact}"
+          cp "${{ matrix.bin_path }}" dist/"${artifact}"/
+          cp LICENSE README.md dist/"${artifact}"/
+          tar -C dist -czf "${artifact}.tar.gz" "${artifact}"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $artifact = "${{ matrix.artifact_name }}"
+          New-Item -ItemType Directory -Force -Path "dist/$artifact" | Out-Null
+          Copy-Item -Path "${{ matrix.bin_path }}" -Destination "dist/$artifact/"
+          Copy-Item -Path "LICENSE","README.md" -Destination "dist/$artifact/"
+          Compress-Archive -Path "dist/$artifact/*" -DestinationPath "$artifact.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            *.${{ matrix.archive_ext }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          shopt -s globstar
+          sha256sum **/* > SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*
+            artifacts/SHA256SUMS
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish to crates.io
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    env:
+      CARGO_REGISTRIES_CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF##*/}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set package versions from tag
+        shell: python
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          import os
+          import pathlib
+          import re
+
+          version = os.environ["VERSION"]
+          for path in ["crates/core/Cargo.toml", "crates/cli/Cargo.toml"]:
+              p = pathlib.Path(path)
+              text = p.read_text()
+              text = re.sub(r'^version\s*=\s*"[^"]+"', f'version = "{version}"', text, count=1, flags=re.MULTILINE)
+              p.write_text(text)
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo publish dry-run (library)
+        run: cargo publish -p minver-rs --locked --dry-run
+
+      - name: Cargo publish dry-run (cli)
+        run: cargo publish -p minver-rs-cli --locked --dry-run
+
+      - name: Publish library
+        run: cargo publish -p minver-rs --locked
+
+      - name: Wait for crate index to update
+        run: sleep 20
+
+      - name: Publish cli
+        run: cargo publish -p minver-rs-cli --locked
