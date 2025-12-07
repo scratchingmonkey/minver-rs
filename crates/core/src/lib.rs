@@ -1,14 +1,21 @@
 //! # minver-rs core library
 //! Minimalistic version calculation from Git tags, mirroring the original .NET MinVer behavior.
 //!
-//! ## Quick start (non-Git safe)
-//! ```rust
-//! # use minver_rs::MinVerError;
-//! use minver_rs::{calculate_version_with_fallback, Config};
+//! ## Quick Start
 //!
+//! Get the version for the current Git repository.
+//!
+//! ```rust,no_run
+//! # use minver_rs::MinVerError;
+//! use minver_rs::{calculate_version, Config};
+//!
+//! // Use default configuration
 //! let config = Config::default();
-//! let result = calculate_version_with_fallback("./", &config)?;
-//! assert_eq!(result.to_string(), "0.0.0-alpha.0");
+//!
+//! // Calculate version from the current directory
+//! let result = calculate_version(".", &config)?;
+//!
+//! println!("Calculated version: {}", result);
 //! # Ok::<_, MinVerError>(())
 //! ```
 //!
