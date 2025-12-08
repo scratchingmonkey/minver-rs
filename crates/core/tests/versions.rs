@@ -131,13 +131,13 @@ async fn test_repo_with_history() {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect();
-    // Some git versions suppress one of the duplicate decorations; ensure at least one is present
-    let has_expected_dup = duplicate_tags
-        .iter()
-        .any(|t| t.starts_with("v(2)/1.0.1-alpha.0."));
+    // Some git versions suppress one of the duplicate decorations; accept .1 or .2 but nothing else
+    let has_expected_dup = duplicate_tags.iter().any(|t| {
+        t == "v(2)/1.0.1-alpha.0.1" || t == "v(2)/1.0.1-alpha.0.2"
+    });
     assert!(
         has_expected_dup,
-        "expected at least one v(2)/1.0.1-alpha.0.* tag, got: {:?}",
+        "expected one of v(2)/1.0.1-alpha.0.1 or v(2)/1.0.1-alpha.0.2, got: {:?}",
         duplicate_tags
     );
 
