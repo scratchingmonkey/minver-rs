@@ -211,3 +211,31 @@ jobs:
 
       - name: Publish cli
         run: cargo publish -p tagver-cli --locked --allow-dirty
+
+  update-major-tag:
+    name: Update Major Version Tag
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Update Major Tag
+        run: |
+          # Get the version from the tag (e.g., v1.2.3)
+          TAG=${GITHUB_REF##*/}
+          # Extract major version (e.g., v1)
+          MAJOR=${TAG%%.*}
+          
+          echo "Updating $MAJOR to point to $TAG"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Force update the major tag
+          git tag -fa $MAJOR -m "Update $MAJOR to $TAG"
+          git push origin $MAJOR --force

@@ -1,0 +1,193 @@
+name: 'MinVer-RS'
+description: 'Minimalistic versioning using Git tags (Rust implementation)'
+author: 'scratchingmonkey'
+branding:
+  icon: 'git-commit'
+  color: 'orange'
+
+inputs:
+  tag-prefix:
+    description: 'Tag prefix to filter tags (e.g., "v" for "v1.0.0")'
+    required: false
+  auto-increment:
+    description: 'Auto-increment policy for RTM versions (major, minor, patch)'
+    required: false
+  default-pre-release-identifiers:
+    description: 'Default pre-release identifiers (e.g., "alpha.0")'
+    required: false
+  minimum-major-minor:
+    description: 'Minimum major.minor version constraint (e.g., "1.0")'
+    required: false
+  build-metadata:
+    description: 'Build metadata to append to versions'
+    required: false
+  ignore-height:
+    description: 'Ignore height in version calculation'
+    required: false
+    default: 'false'
+  working-directory:
+    description: 'Working directory to analyze'
+    required: false
+    default: '.'
+  minver-version:
+    description: 'Version of minver-rs to use (e.g., "v0.1.0" or "latest")'
+    required: false
+    default: 'latest'
+
+outputs:
+  version:
+    description: 'The full calculated version'
+    value: ${{ steps.calculate.outputs.version }}
+  major:
+    description: 'The major version component'
+    value: ${{ steps.calculate.outputs.major }}
+  minor:
+    description: 'The minor version component'
+    value: ${{ steps.calculate.outputs.minor }}
+  patch:
+    description: 'The patch version component'
+    value: ${{ steps.calculate.outputs.patch }}
+  pre-release:
+    description: 'The pre-release component (if any)'
+    value: ${{ steps.calculate.outputs.pre_release }}
+  build-metadata:
+    description: 'The build metadata component (if any)'
+    value: ${{ steps.calculate.outputs.build_metadata }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install MinVer
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.minver-version }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        # Determine OS and Architecture
+        OS="$(uname -s)"
+        ARCH="$(uname -m)"
+        
+        case "$OS" in
+          Linux)  PLATFORM="linux" ;;
+          Darwin) PLATFORM="macos" ;;
+          MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
+          *) echo "Unsupported OS: $OS"; exit 1 ;;
+        esac
+
+        case "$ARCH" in
+          x86_64) ARCH="x86_64" ;;
+          aarch64|arm64) 
+            if [ "$PLATFORM" = "macos" ]; then
+              ARCH="arm64"
+            else
+              ARCH="aarch64"
+            fi
+            ;;
+          *) echo "Unsupported Architecture: $ARCH"; exit 1 ;;
+        esac
+
+        # Map to artifact names from release.yml
+        # minver-linux-x86_64.tar.gz
+        # minver-linux-arm64.tar.gz
+        # minver-macos-arm64.tar.gz
+        # minver-windows-x86_64.zip
+        
+        if [ "$PLATFORM" = "linux" ] && [ "$ARCH" = "x86_64" ]; then
+          ASSET_NAME="minver-linux-x86_64.tar.gz"
+        elif [ "$PLATFORM" = "linux" ] && [ "$ARCH" = "aarch64" ]; then
+          ASSET_NAME="minver-linux-arm64.tar.gz"
+        elif [ "$PLATFORM" = "macos" ] && [ "$ARCH" = "arm64" ]; then
+          ASSET_NAME="minver-macos-arm64.tar.gz"
+        elif [ "$PLATFORM" = "windows" ] && [ "$ARCH" = "x86_64" ]; then
+          ASSET_NAME="minver-windows-x86_64.zip"
+        else
+          # Fallback or error. For now, let's try to be specific based on release.yml
+          echo "No pre-built binary found for $PLATFORM-$ARCH"
+          exit 1
+        fi
+
+        # Determine Version
+        if [ "$REQUESTED_VERSION" = "latest" ]; then
+          # Fetch latest release tag from GitHub API
+          DOWNLOAD_URL="https://github.com/scratchingmonkey/minver-rs/releases/latest/download/$ASSET_NAME"
+        else
+          DOWNLOAD_URL="https://github.com/scratchingmonkey/minver-rs/releases/download/$REQUESTED_VERSION/$ASSET_NAME"
+        fi
+
+        echo "Downloading $DOWNLOAD_URL..."
+        
+        # Create a temp directory for the binary
+        INSTALL_DIR="$HOME/.minver-rs/bin"
+        mkdir -p "$INSTALL_DIR"
+        
+        # Download and extract
+        if [ "$PLATFORM" = "windows" ]; then
+          curl -L -o minver.zip "$DOWNLOAD_URL"
+          unzip -o minver.zip -d "$INSTALL_DIR"
+          rm minver.zip
+        else
+          curl -L -o minver.tar.gz "$DOWNLOAD_URL"
+          tar -xzf minver.tar.gz -C "$INSTALL_DIR"
+          rm minver.tar.gz
+        fi
+        
+        # Add to PATH
+        echo "$INSTALL_DIR" >> $GITHUB_PATH
+        chmod +x "$INSTALL_DIR/minver"
+
+    - name: Calculate Version
+      id: calculate
+      shell: bash
+      env:
+        INPUT_TAG_PREFIX: ${{ inputs.tag-prefix }}
+        INPUT_AUTO_INCREMENT: ${{ inputs.auto-increment }}
+        INPUT_DEFAULT_PRERELEASE: ${{ inputs.default-pre-release-identifiers }}
+        INPUT_MIN_MAJOR_MINOR: ${{ inputs.minimum-major-minor }}
+        INPUT_BUILD_METADATA: ${{ inputs.build-metadata }}
+        INPUT_IGNORE_HEIGHT: ${{ inputs.ignore-height }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        # Build command arguments
+        ARGS="--format json"
+        [ -n "$INPUT_TAG_PREFIX" ] && ARGS="$ARGS --tag-prefix $INPUT_TAG_PREFIX"
+        [ -n "$INPUT_AUTO_INCREMENT" ] && ARGS="$ARGS --auto-increment $INPUT_AUTO_INCREMENT"
+        [ -n "$INPUT_DEFAULT_PRERELEASE" ] && ARGS="$ARGS --default-pre-release-identifiers $INPUT_DEFAULT_PRERELEASE"
+        [ -n "$INPUT_MIN_MAJOR_MINOR" ] && ARGS="$ARGS --minimum-major-minor $INPUT_MIN_MAJOR_MINOR"
+        [ -n "$INPUT_BUILD_METADATA" ] && ARGS="$ARGS --build-metadata $INPUT_BUILD_METADATA"
+        [ "$INPUT_IGNORE_HEIGHT" = "true" ] && ARGS="$ARGS --ignore-height"
+        
+        # Run minver
+        cd "$INPUT_WORKING_DIRECTORY"
+        JSON_OUTPUT=$(minver $ARGS)
+        echo "MinVer Output: $JSON_OUTPUT"
+        
+        # Parse JSON using Python and set outputs
+        export JSON_OUTPUT
+        python3 -c "
+        import sys
+        import json
+        import os
+        
+        try:
+            json_str = os.environ.get('JSON_OUTPUT', '{}')
+            data = json.loads(json_str)
+            
+            print(f\"version={data.get('version', '')}\")
+            print(f\"major={data.get('major', 0)}\")
+            print(f\"minor={data.get('minor', 0)}\")
+            print(f\"patch={data.get('patch', 0)}\")
+            
+            pre = data.get('pre_release', [])
+            if isinstance(pre, list):
+                pre = '.'.join(pre)
+            print(f\"pre_release={pre}\")
+            
+            meta = data.get('build_metadata')
+            if meta is None:
+                meta = ''
+            print(f\"build_metadata={meta}\")
+            
+        except Exception as e:
+            print(f'Error parsing JSON: {e}', file=sys.stderr)
+            sys.exit(1)
+        " >> $GITHUB_OUTPUT
