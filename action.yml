@@ -61,7 +61,6 @@ runs:
       shell: bash
       env:
         REQUESTED_VERSION: ${{ inputs.minver-version }}
-
       run: |
         # Determine OS and Architecture
         OS="$(uname -s)"
@@ -178,8 +177,7 @@ runs:
             print(f\"patch={data.get('patch', 0)}\")
             
             pre = data.get('pre_release', [])
-            if isinstance(pre, list):
-                pre = '.'.join(pre)
+            pre = '.'.join(pre)
             print(f\"pre_release={pre}\")
             
             meta = data.get('build_metadata')
