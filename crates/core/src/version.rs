@@ -1,6 +1,7 @@
 //! Version representation and calculation.
 
 use crate::config::{MajorMinor, VersionPart};
+use serde::Serialize;
 
 /// Semantic version representation used by MinVer.
 ///
@@ -13,7 +14,7 @@ use crate::config::{MajorMinor, VersionPart};
 /// assert_eq!(version.to_string(), "1.2.3");
 /// # Ok::<_, MinVerError>(())
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Version {
     pub major: u32,
     pub minor: u32,
