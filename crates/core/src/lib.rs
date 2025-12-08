@@ -123,7 +123,7 @@ pub fn calculate_version_with_fallback(
 /// assert!(!result.is_from_tag);
 /// # Ok::<_, MinVerError>(())
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CalculationResult {
     pub version: Version,
     pub height: u32,

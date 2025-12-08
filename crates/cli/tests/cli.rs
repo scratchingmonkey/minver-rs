@@ -302,3 +302,22 @@ fn test_cli_args_override_env_vars() {
         .success()
         .stdout(predicate::str::contains("1.1.0-alpha.0.1")); // CLI arg should win
 }
+
+#[test]
+fn test_json_output() {
+    let temp = create_git_repo_with_tag("1.2.3");
+    let repo_path = temp.path();
+
+    minver_cmd()
+        .current_dir(repo_path)
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(r#""version": "1.2.3""#))
+        .stdout(predicate::str::contains(r#""major": 1"#))
+        .stdout(predicate::str::contains(r#""minor": 2"#))
+        .stdout(predicate::str::contains(r#""patch": 3"#))
+        .stdout(predicate::str::contains(r#""pre_release": []"#))
+        .stdout(predicate::str::contains(r#""build_metadata": null"#));
+}

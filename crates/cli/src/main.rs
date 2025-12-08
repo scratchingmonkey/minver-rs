@@ -45,9 +45,20 @@ struct Args {
     #[arg(short = 'b', long = "build-metadata")]
     build_metadata: Option<String>,
 
+    /// Output format (text, json)
+    #[arg(short = 'f', long = "format", value_enum, default_value_t = OutputFormat::Text)]
+    format: OutputFormat,
+
     /// Verbosity level (quiet, normal, verbose, debug, trace)
     #[arg(short = 'v', long = "verbosity", value_parser = parse_verbosity)]
     verbosity: Option<Verbosity>,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug, Default)]
+enum OutputFormat {
+    #[default]
+    Text,
+    Json,
 }
 
 fn parse_version_part(s: &str) -> Result<VersionPart, String> {
@@ -91,7 +102,25 @@ fn main() {
     let result = match calculate_version(working_dir, &config) {
         Ok(result) => {
             info!("Calculated version: {}", result);
-            println!("{}", result);
+            match args.format {
+                OutputFormat::Text => println!("{}", result),
+                OutputFormat::Json => {
+                    let json = serde_json::json!({
+                        "version": result.version.to_string(),
+                        "major": result.version.major,
+                        "minor": result.version.minor,
+                        "patch": result.version.patch,
+                        "pre_release": result.version.prerelease,
+                        "build_metadata": result.version.build_metadata,
+                        "height": result.height,
+                        "is_from_tag": result.is_from_tag
+                    });
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json).expect("Failed to serialize version")
+                    );
+                }
+            }
 
             if result.height > 0 && !config.ignore_height {
                 debug!("Height: {}", result.height);
@@ -245,6 +274,7 @@ mod tests {
             minimum_major_minor: Some("2.1".to_string()),
             ignore_height: true,
             build_metadata: Some("build.123".to_string()),
+            format: OutputFormat::Text,
             verbosity: Some(Verbosity::Debug),
         };
 
@@ -273,6 +303,7 @@ mod tests {
             minimum_major_minor: None,
             ignore_height: false,
             build_metadata: None,
+            format: OutputFormat::Text,
             verbosity: None,
         };
 
