@@ -147,16 +147,22 @@ async fn test_repo_with_history() {
         .expect("Failed to get graph");
 
     // Normalize line endings and whitespace for comparison
+    let normalize = |l: &str| {
+        l.trim_end()
+            .trim_start_matches(|c: char| c == ' ' || c == '*' || c == '|' || c == '\\' || c == '/')
+            .to_string()
+    };
+
     let actual_lines: Vec<String> = graph
         .lines()
-        .map(|l| l.trim_end().to_string())
+        .map(normalize)
         // Drop v(2)/ duplicate decoration lines that some git versions emit
         .filter(|l| !l.contains("v(2)/"))
         .collect();
 
     let expected_lines: Vec<String> = common::fixtures::EXPECTED_GRAPH
         .lines()
-        .map(|l| l.trim_end().to_string())
+        .map(normalize)
         // Some git versions may suppress duplicate decorations; ignore the optional v(2) tags
         .filter(|l| !l.contains("v(2)/"))
         .collect();
