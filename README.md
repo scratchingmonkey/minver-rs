@@ -1,20 +1,24 @@
 # TagVer
 
-[![CI](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml?query=branch%3Amain) [![MSRV 1.75+](https://img.shields.io/badge/MSRV-1.75%2B-blue.svg)](https://blog.rust-lang.org/2023/12/07/Rust-1.75.0.html)
+[![CI](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml?query=branch%3Amain) [![Crates.io Version](https://img.shields.io/crates/v/tagver)](https://crates.io/crates/tagver-cli) [![docs.rs](https://img.shields.io/docsrs/tagver?logo=docsdotrs&link=https%3A%2F%2Fdocs.rs%2Ftagver%2Flatest%2Ftagver%2F)](https://crates.io/crates/tagver-cli)
+ ![Binary Size](https://img.shields.io/crates/size/tagver-cli?logo=rust) ![MSRV](https://img.shields.io/crates/msrv/tagver?logo=rust)
 
-A Rust implementation of the [MinVer CLI](https://github.com/adamralph/minver) - minimalistic versioning using Git tags.
 
-This project ports the excellent MinVer CLI .NET tool to Rust and incorporates the [`gitoxide`](https://github.com/GitoxideLabs/gitoxide) crate, providing a fast, dependency-free CLI tool and library for calculating version numbers from Git repository tags.
+A fast, dependency-free, CLI tool and Rust library for calculating version numbers from Git repository tags.
+
+This project is heavily influenced by the excellent [MinVer CLI](https://github.com/adamralph/minver) CLI .NET tool, written in Rust and incorporating the [`gitoxide`](https://github.com/GitoxideLabs/gitoxide) crate.
 
 ## Features
 
 - **Tag-driven versioning**: Uses Git tags as the single source of truth for versions
-- **Height calculation**: Automatically calculates distance from tagged commits
+- **Height calculation**: Automatically calculates distance from tagged commits to generate alpha versions
 - **Cross-platform**: Single binary that runs anywhere Rust compiles
 - **Zero dependencies**: Statically linked binary with no runtime dependencies
-- **Environment variable support**: Full compatibility with existing MinVer CLI workflows
-- **First-parent traversal**: Correctly handles merge commits like the original
+- **Environment variable support**: Fully configurable using environment variables
+- **JSON formatted version output**: Outputs version information to JSON for easy scripting
+- **First-parent traversal**: Correctly handles merge commits seamlessly
 - **Semantic versioning**: Strict adherence to SemVer 2.0.0 specification
+- **A GitHub Action**: Provides version information as outputs automatically
 
 ## Requirements
 
@@ -22,25 +26,10 @@ This project ports the excellent MinVer CLI .NET tool to Rust and incorporates t
 
 ## Installation
 
-### From crates.io (recommended)
+### From crates.io
 
 ```bash
 cargo install tagver-cli
-```
-
-### Pre-built binaries
-
-Download platform-specific archives from [GitHub Releases](https://github.com/scratchingmonkey/tagver/releases):
-- `tagver-linux-x86_64.tar.gz` (Linux x86_64)
-- `tagver-macos-arm64.tar.gz` (macOS Apple Silicon)
-- `tagver-windows-x86_64.zip` (Windows x86_64)
-
-### From source
-
-```bash
-git clone https://github.com/scratchingmonkey/tagver
-cd tagver
-cargo install --path crates/cli
 ```
 
 ## Usage
@@ -59,20 +48,14 @@ tagver --ignore-height
 
 # Print all command-line options
 tagver --help
-```
 
-### Example
-
-```bash
-$ git tag 1.2.3
-
-$ tagver
-1.2.3
+# Output JSON
+tagver --format JSON
 ```
 
 ### Environment variables
 
-All options can also be set via environment variables:
+Most options can also be set via environment variables:
 
 - `TAGVER_TAGPREFIX`
 - `TAGVER_AUTOINCREMENT`
@@ -138,12 +121,6 @@ Inputs mirror the CLI options (for example `tag-prefix`, `auto-increment`, `igno
 - `major`, `minor`, `patch`: numeric components
 - `pre-release`: prerelease identifiers joined by `.`
 - `build-metadata`: build metadata string (empty if none)
-
-Pin the action to a major tag such as `@v0` to receive non-breaking fixes while avoiding accidental breaking changes when you release new major versions.
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
