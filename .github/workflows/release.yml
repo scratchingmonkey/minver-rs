@@ -149,9 +149,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/**/*
-            artifacts/SHA256SUMS
+          files: artifacts/**/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -200,16 +198,16 @@ jobs:
         run: cargo generate-lockfile
 
       - name: Cargo publish dry-run (library)
-        run: cargo publish -p tagver --locked --dry-run
+        run: cargo publish -p tagver --locked --allow-dirty --dry-run
 
       - name: Cargo publish dry-run (cli)
-        run: cargo publish -p tagver-cli --locked --dry-run
+        run: cargo publish -p tagver-cli --locked --allow-dirty --dry-run
 
       - name: Publish library
-        run: cargo publish -p tagver --locked
+        run: cargo publish -p tagver --locked --allow-dirty
 
       - name: Wait for crate index to update
         run: sleep 20
 
       - name: Publish cli
-        run: cargo publish -p tagver-cli --locked
+        run: cargo publish -p tagver-cli --locked --allow-dirty
