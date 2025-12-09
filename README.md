@@ -1,46 +1,29 @@
 # TagVer
 
-[![CI](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml?query=branch%3Amain) [![MSRV 1.75+](https://img.shields.io/badge/MSRV-1.75%2B-blue.svg)](https://blog.rust-lang.org/2023/12/07/Rust-1.75.0.html)
+[![CI](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/scratchingmonkey/tagver/actions/workflows/ci.yml?query=branch%3Amain) [![Crates.io Version](https://img.shields.io/crates/v/tagver)](https://crates.io/crates/tagver-cli) [![docs.rs](https://img.shields.io/docsrs/tagver?logo=docsdotrs&link=https%3A%2F%2Fdocs.rs%2Ftagver%2Flatest%2Ftagver%2F)](https://crates.io/crates/tagver-cli)
+ ![Binary Size](https://img.shields.io/crates/size/tagver-cli?logo=rust) ![MSRV](https://img.shields.io/crates/msrv/tagver?logo=rust)
 
-A Rust implementation of the [MinVer CLI](https://github.com/adamralph/minver) - minimalistic versioning using Git tags.
 
-This project ports the excellent MinVer CLI .NET tool to Rust and incorporates the [`gitoxide`](https://github.com/GitoxideLabs/gitoxide) crate, providing a fast, dependency-free CLI tool and library for calculating version numbers from Git repository tags.
+A fast, dependency-free, CLI tool and Rust library for calculating version numbers from Git repository tags.
+
+This project is heavily influenced by the excellent [MinVer CLI](https://github.com/adamralph/minver) CLI .NET tool, written in Rust and incorporating the [`gitoxide`](https://github.com/GitoxideLabs/gitoxide) crate.
 
 ## Features
 
 - **Tag-driven versioning**: Uses Git tags as the single source of truth for versions
-- **Height calculation**: Automatically calculates distance from tagged commits
+- **Height calculation**: Automatically calculates distance from tagged commits to generate alpha versions
 - **Cross-platform**: Single binary that runs anywhere Rust compiles
 - **Zero dependencies**: Statically linked binary with no runtime dependencies
-- **Environment variable support**: Full compatibility with existing MinVer CLI workflows
-- **First-parent traversal**: Correctly handles merge commits like the original
+- **Environment variable support**: Fully configurable using environment variables
+- **JSON formatted version output**: Outputs version information to JSON for easy scripting
+- **First-parent traversal**: Correctly handles merge commits seamlessly
 - **Semantic versioning**: Strict adherence to SemVer 2.0.0 specification
-
-## Requirements
-
-- Rust 1.75 or newer (MSRV)
+- **A GitHub Action**: Provides version information as outputs automatically
 
 ## Installation
 
-### From crates.io (recommended)
-
 ```bash
 cargo install tagver-cli
-```
-
-### Pre-built binaries
-
-Download platform-specific archives from [GitHub Releases](https://github.com/scratchingmonkey/tagver/releases):
-- `tagver-linux-x86_64.tar.gz` (Linux x86_64)
-- `tagver-macos-arm64.tar.gz` (macOS Apple Silicon)
-- `tagver-windows-x86_64.zip` (Windows x86_64)
-
-### From source
-
-```bash
-git clone https://github.com/scratchingmonkey/tagver
-cd tagver
-cargo install --path crates/cli
 ```
 
 ## Usage
@@ -51,28 +34,16 @@ cargo install --path crates/cli
 # Calculate version for current repository
 tagver
 
-# With custom tag prefix
-tagver --tag-prefix v
-
-# Ignore height (use exact tag version)
-tagver --ignore-height
-
 # Print all command-line options
 tagver --help
-```
 
-### Example
-
-```bash
-$ git tag 1.2.3
-
-$ tagver
-1.2.3
+# Output JSON
+tagver --format JSON
 ```
 
 ### Environment variables
 
-All options can also be set via environment variables:
+Most options can also be set via environment variables:
 
 - `TAGVER_TAGPREFIX`
 - `TAGVER_AUTOINCREMENT`
@@ -84,7 +55,7 @@ All options can also be set via environment variables:
 
 ## How it works
 
-TagVer follows the same algorithm as the original MinVer:
+TagVer follows the following algorithm:
 
 1. **Tag discovery**: Find all Git tags that match the configured prefix
 2. **Version parsing**: Parse tags as semantic versions (SemVer 2.0.0)
@@ -107,34 +78,11 @@ TagVer follows the same algorithm as the original MinVer:
 | No tags | `0.0.0-alpha.0` |
 | 2 commits from root | `0.0.0-alpha.0.2` |
 
-## Comparison with original MinVer
-
-| Feature | MinVer (.NET) | TagVer (Rust) |
-|---------|---------------|------------------|
-| Language | C# | Rust |
-| Distribution | NuGet package | Static binary |
-| Startup time | ~200ms | <10ms |
-| Dependencies | .NET SDK | None |
-| Cross-platform | .NET supported | All Rust targets |
-| Environment variables | ✅ | ✅ |
-| CLI interface | ✅ | ✅ |
-| Library usage | ✅ | ✅ |
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Adam Ralph](https://github.com/adamralph) for creating the original MinVer
-- [Gitoxide](https://github.com/GitoxideLabs/gitoxide) for the excellent pure-Rust Git implementation
-- The Rust community for the amazing ecosystem of libraries
-
 ## GitHub Action
 
-This repository also ships a lightweight GitHub Action that downloads the pre-built `tagver` binary from releases and exposes the calculated version and components as outputs. It makes it easy to use TagVer in workflows without installing the CLI on the runner.
+This repository also ships a lightweight GitHub Action that downloads the pre-built `tagver` binary from releases and exposes the calculated version and components as outputs.
 
-Usage example:
+Usage:
 
 ```yaml
 steps:
@@ -145,21 +93,28 @@ steps:
    - name: Calculate version
       id: tagver
       uses: scratchingmonkey/tagver@v0
-      with:
+      with: # All optional
          tag-prefix: 'v'
+         auto-increment: patch
+         default-pre-release-identifiers: "alpha.0"
+         minimum-major-minor: "1.0"
+         build-metadata: beta
+         ignore-height: true
+         working-directory: '.'
+         tagver-version: "0.1.0"
 
    - name: Use version
       run: |
          echo "Full: ${{ steps.tagver.outputs.version }}"
          echo "Major: ${{ steps.tagver.outputs.major }}"
+         echo "Minor: ${{ steps.tagver.outputs.minor }}"
+         echo "Patch: ${{ steps.tagver.outputs.patch }}"
          echo "Pre-release: ${{ steps.tagver.outputs.pre-release }}"
+         echo "Build-metadata: ${{ steps.tagver.outputs.build-metadata }}"
 ```
 
-Inputs mirror the CLI options (for example `tag-prefix`, `auto-increment`, `ignore-height`, etc.). The action provides the following outputs:
+## Acknowledgments
 
-- `version`: full SemVer string
-- `major`, `minor`, `patch`: numeric components
-- `pre-release`: prerelease identifiers joined by `.`
-- `build-metadata`: build metadata string (empty if none)
-
-Pin the action to a major tag such as `@v0` to receive non-breaking fixes while avoiding accidental breaking changes when you release new major versions.
+- [Adam Ralph](https://github.com/adamralph) for creating the original MinVer
+- [Gitoxide](https://github.com/GitoxideLabs/gitoxide) for the excellent pure-Rust Git implementation
+- The Rust community for the amazing ecosystem of libraries
