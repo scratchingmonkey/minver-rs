@@ -20,13 +20,7 @@ This project is heavily influenced by the excellent [MinVer CLI](https://github.
 - **Semantic versioning**: Strict adherence to SemVer 2.0.0 specification
 - **A GitHub Action**: Provides version information as outputs automatically
 
-## Requirements
-
-- Rust 1.75 or newer (MSRV)
-
 ## Installation
-
-### From crates.io
 
 ```bash
 cargo install tagver-cli
@@ -39,12 +33,6 @@ cargo install tagver-cli
 ```bash
 # Calculate version for current repository
 tagver
-
-# With custom tag prefix
-tagver --tag-prefix v
-
-# Ignore height (use exact tag version)
-tagver --ignore-height
 
 # Print all command-line options
 tagver --help
@@ -67,7 +55,7 @@ Most options can also be set via environment variables:
 
 ## How it works
 
-TagVer follows the same algorithm as the original MinVer:
+TagVer follows the following algorithm:
 
 1. **Tag discovery**: Find all Git tags that match the configured prefix
 2. **Version parsing**: Parse tags as semantic versions (SemVer 2.0.0)
@@ -92,9 +80,9 @@ TagVer follows the same algorithm as the original MinVer:
 
 ## GitHub Action
 
-This repository also ships a lightweight GitHub Action that downloads the pre-built `tagver` binary from releases and exposes the calculated version and components as outputs. It makes it easy to use TagVer in workflows without installing the CLI on the runner.
+This repository also ships a lightweight GitHub Action that downloads the pre-built `tagver` binary from releases and exposes the calculated version and components as outputs.
 
-Usage example:
+Usage:
 
 ```yaml
 steps:
@@ -105,22 +93,25 @@ steps:
    - name: Calculate version
       id: tagver
       uses: scratchingmonkey/tagver@v0
-      with:
+      with: # All optional
          tag-prefix: 'v'
+         auto-increment: patch
+         default-pre-release-identifiers: "alpha.0"
+         minimum-major-minor: "1.0"
+         build-metadata: beta
+         ignore-height: true
+         working-directory: '.'
+         tagver-version: "0.1.0"
 
    - name: Use version
       run: |
          echo "Full: ${{ steps.tagver.outputs.version }}"
          echo "Major: ${{ steps.tagver.outputs.major }}"
+         echo "Minor: ${{ steps.tagver.outputs.minor }}"
+         echo "Patch: ${{ steps.tagver.outputs.patch }}"
          echo "Pre-release: ${{ steps.tagver.outputs.pre-release }}"
+         echo "Build-metadata: ${{ steps.tagver.outputs.build-metadata }}"
 ```
-
-Inputs mirror the CLI options (for example `tag-prefix`, `auto-increment`, `ignore-height`, etc.). The action provides the following outputs:
-
-- `version`: full SemVer string
-- `major`, `minor`, `patch`: numeric components
-- `pre-release`: prerelease identifiers joined by `.`
-- `build-metadata`: build metadata string (empty if none)
 
 ## Acknowledgments
 
