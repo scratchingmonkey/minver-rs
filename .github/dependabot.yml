@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directories: 
+      - "/"
+      - "/crates/cli"
+      - "/crates/core"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "devcontainers"
+    directory: "/.devcontainer
+    schedule:
+      interval: "monthly"
