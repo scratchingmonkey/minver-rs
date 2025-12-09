@@ -1,5 +1,5 @@
-name: 'MinVer-RS'
-description: 'Minimalistic versioning using Git tags (Rust implementation)'
+name: 'TagVer'
+description: 'Tag / commit height based versioning for Git repositories'
 author: 'scratchingmonkey'
 branding:
   icon: 'git-commit'
@@ -29,8 +29,8 @@ inputs:
     description: 'Working directory to analyze'
     required: false
     default: '.'
-  minver-version:
-    description: 'Version of minver-rs to use (e.g., "v0.1.0" or "latest")'
+  tagver-version:
+    description: 'Version of tagver to use (e.g., "v0.1.0" or "latest")'
     required: false
     default: 'latest'
 
@@ -57,10 +57,10 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Install MinVer
+    - name: Install TagVer
       shell: bash
       env:
-        REQUESTED_VERSION: ${{ inputs.minver-version }}
+        REQUESTED_VERSION: ${{ inputs.tagver-version }}
       run: |
         # Determine OS and Architecture
         OS="$(uname -s)"
@@ -86,19 +86,19 @@ runs:
         esac
 
         # Map to artifact names from release.yml
-        # minver-linux-x86_64.tar.gz
-        # minver-linux-arm64.tar.gz
-        # minver-macos-arm64.tar.gz
-        # minver-windows-x86_64.zip
+        # tagver-linux-x86_64.tar.gz
+        # tagver-linux-arm64.tar.gz
+        # tagver-macos-arm64.tar.gz
+        # tagver-windows-x86_64.zip
         
         if [ "$PLATFORM" = "linux" ] && [ "$ARCH" = "x86_64" ]; then
-          ASSET_NAME="minver-linux-x86_64.tar.gz"
+          ASSET_NAME="tagver-linux-x86_64.tar.gz"
         elif [ "$PLATFORM" = "linux" ] && [ "$ARCH" = "aarch64" ]; then
-          ASSET_NAME="minver-linux-arm64.tar.gz"
+          ASSET_NAME="tagver-linux-arm64.tar.gz"
         elif [ "$PLATFORM" = "macos" ] && [ "$ARCH" = "arm64" ]; then
-          ASSET_NAME="minver-macos-arm64.tar.gz"
+          ASSET_NAME="tagver-macos-arm64.tar.gz"
         elif [ "$PLATFORM" = "windows" ] && [ "$ARCH" = "x86_64" ]; then
-          ASSET_NAME="minver-windows-x86_64.zip"
+          ASSET_NAME="tagver-windows-x86_64.zip"
         else
           # Fallback or error. For now, let's try to be specific based on release.yml
           echo "No pre-built binary found for $PLATFORM-$ARCH"
@@ -108,31 +108,43 @@ runs:
         # Determine Version
         if [ "$REQUESTED_VERSION" = "latest" ]; then
           # Fetch latest release tag from GitHub API
-          DOWNLOAD_URL="https://github.com/scratchingmonkey/minver-rs/releases/latest/download/$ASSET_NAME"
+          DOWNLOAD_URL="https://github.com/scratchingmonkey/tagver/releases/latest/download/$ASSET_NAME"
         else
-          DOWNLOAD_URL="https://github.com/scratchingmonkey/minver-rs/releases/download/$REQUESTED_VERSION/$ASSET_NAME"
+          DOWNLOAD_URL="https://github.com/scratchingmonkey/tagver/releases/download/$REQUESTED_VERSION/$ASSET_NAME"
         fi
 
         echo "Downloading $DOWNLOAD_URL..."
         
         # Create a temp directory for the binary
-        INSTALL_DIR="$HOME/.minver-rs/bin"
+        INSTALL_DIR="$HOME/.tagver/bin"
         mkdir -p "$INSTALL_DIR"
         
-        # Download and extract
+        # Download and extract (archives contain an outer directory)
+        ARTIFACT_DIR=""
+
         if [ "$PLATFORM" = "windows" ]; then
-          curl -L -o minver.zip "$DOWNLOAD_URL"
-          unzip -o minver.zip -d "$INSTALL_DIR"
-          rm minver.zip
+          curl -L -o tagver.zip "$DOWNLOAD_URL"
+          ARTIFACT_DIR="${ASSET_NAME%.zip}"
+          TMP_DIR="$(mktemp -d)"
+          unzip -o tagver.zip -d "$TMP_DIR"
+          cp "$TMP_DIR/$ARTIFACT_DIR/tagver.exe" "$INSTALL_DIR/tagver.exe"
+          rm -rf "$TMP_DIR" tagver.zip
         else
-          curl -L -o minver.tar.gz "$DOWNLOAD_URL"
-          tar -xzf minver.tar.gz -C "$INSTALL_DIR"
-          rm minver.tar.gz
+          curl -L -o tagver.tar.gz "$DOWNLOAD_URL"
+          ARTIFACT_DIR="${ASSET_NAME%.tar.gz}"
+          TMP_DIR="$(mktemp -d)"
+          tar -xzf tagver.tar.gz -C "$TMP_DIR"
+          cp "$TMP_DIR/$ARTIFACT_DIR/tagver" "$INSTALL_DIR/tagver"
+          rm -rf "$TMP_DIR" tagver.tar.gz
         fi
         
         # Add to PATH
         echo "$INSTALL_DIR" >> $GITHUB_PATH
-        chmod +x "$INSTALL_DIR/minver"
+        if [ "$PLATFORM" = "windows" ]; then
+          chmod +x "$INSTALL_DIR/tagver.exe" 2>/dev/null || true
+        else
+          chmod +x "$INSTALL_DIR/tagver"
+        fi
 
     - name: Calculate Version
       id: calculate
@@ -155,10 +167,10 @@ runs:
         [ -n "$INPUT_BUILD_METADATA" ] && ARGS="$ARGS --build-metadata $INPUT_BUILD_METADATA"
         [ "$INPUT_IGNORE_HEIGHT" = "true" ] && ARGS="$ARGS --ignore-height"
         
-        # Run minver
+        # Run tagver
         cd "$INPUT_WORKING_DIRECTORY"
-        JSON_OUTPUT=$(minver $ARGS)
-        echo "MinVer Output: $JSON_OUTPUT"
+        JSON_OUTPUT=$(tagver $ARGS)
+        echo "TagVer Output: $JSON_OUTPUT"
         
         # Parse JSON using Python and set outputs
         export JSON_OUTPUT
@@ -186,6 +198,6 @@ runs:
             print(f\"build_metadata={meta}\")
             
         except Exception as e:
-            print(f'Error parsing JSON: {e}\nRaw JSON_OUTPUT: {os.environ.get('JSON_OUTPUT', '{}')}", file=sys.stderr)
+            print(f"Error parsing JSON: {e}\nRaw JSON_OUTPUT: {os.environ.get('JSON_OUTPUT', '{}')}", file=sys.stderr)", file=sys.stderr)
             sys.exit(1)
         " >> $GITHUB_OUTPUT
