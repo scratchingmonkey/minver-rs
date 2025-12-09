@@ -77,6 +77,9 @@ jobs:
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Regenerate lockfile after version bump
+        run: cargo generate-lockfile
+
       - name: Cache cargo registry and build artifacts
         uses: actions/cache@v4
         with:
@@ -192,6 +195,9 @@ jobs:
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Regenerate lockfile after version bump
+        run: cargo generate-lockfile
 
       - name: Cargo publish dry-run (library)
         run: cargo publish -p tagver --locked --dry-run
