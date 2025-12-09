@@ -9,7 +9,7 @@
 cargo build
 
 # Build specific crate
-cargo build -p minver-cli
+cargo build -p tagver-cli
 
 # Build release version
 cargo build --release
@@ -22,7 +22,7 @@ cargo build --release
 cargo test
 
 # Run tests for specific crate
-cargo test -p minver-core
+cargo test -p tagver
 
 # Run integration tests
 cargo test --test integration
@@ -62,7 +62,7 @@ minver --working-directory linear-test
 ## Reporting Issues
 
 When filing an issue, please include:
-- minver-rs version (`minver --version`)
+- `tagver` version (`tagver --version`)
 - Rust version (`rustc --version`)
 - Operating system and shell
 - Reproduction steps and expected vs. actual behavior

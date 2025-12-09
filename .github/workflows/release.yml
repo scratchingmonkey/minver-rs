@@ -225,9 +225,9 @@ jobs:
       
       - name: Update Major Tag
         run: |
-          # Get the version from the tag (e.g., v1.2.3)
+          # Get the version from the tag (e.g., 1.2.3)
           TAG=${GITHUB_REF##*/}
-          # Extract major version (e.g., v1)
+          # Extract major version (e.g., 1)
           MAJOR=${TAG%%.*}
           
           echo "Updating $MAJOR to point to $TAG"

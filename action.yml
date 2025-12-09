@@ -123,6 +123,7 @@ runs:
         ARTIFACT_DIR=""
 
         if [ "$PLATFORM" = "windows" ]; then
+          # Use wget instead of curl as it follows GitHub redirects
           wget -q -O tagver.zip "$DOWNLOAD_URL"
           ARTIFACT_DIR="${ASSET_NAME%.zip}"
           TMP_DIR="$(mktemp -d)"
@@ -130,6 +131,7 @@ runs:
           cp "$TMP_DIR/$ARTIFACT_DIR/tagver.exe" "$INSTALL_DIR/tagver.exe"
           rm -rf "$TMP_DIR" tagver.zip
         else
+          # Use wget instead of curl as it follows GitHub redirects
           wget -q -O tagver.tar.gz "$DOWNLOAD_URL"
           ARTIFACT_DIR="${ASSET_NAME%.tar.gz}"
           TMP_DIR="$(mktemp -d)"
