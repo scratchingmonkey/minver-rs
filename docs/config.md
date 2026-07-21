@@ -20,7 +20,7 @@ the same settings apply to every invocation.
 
 | Variable | Value | Description | Default |
 | --- | --- | --- | --- |
-| `TAGVER_TAGPREFIX` | string | Only consider tags with this prefix (e.g. `v`) | empty (all tags) |
+| `TAGVER_TAGPREFIX` | string | Only consider tags with this prefix (e.g. `release-`) | empty (all tags) |
 | `TAGVER_AUTOINCREMENT` | `major` \| `minor` \| `patch` | Part to bump for the next version | `patch` |
 | `TAGVER_DEFAULTPRERELEASEIDENTIFIERS` | dot-separated string | Default pre-release identifiers (e.g. `alpha.0`) | `alpha.0` |
 | `TAGVER_MINIMUMMAJORMINOR` | `major.minor` | Floor the version at this `major.minor` (e.g. `1.0`) | none |
@@ -40,7 +40,7 @@ Notes:
 
 ```bash
 # Configure once for the whole shell / CI job
-export TAGVER_TAGPREFIX=v
+export TAGVER_TAGPREFIX=release-
 export TAGVER_AUTOINCREMENT=minor
 export TAGVER_MINIMUMMAJORMINOR=1.0
 

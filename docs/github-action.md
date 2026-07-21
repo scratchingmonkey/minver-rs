@@ -8,7 +8,8 @@ tagver ships a composite GitHub Action that downloads the prebuilt `tagver`
 binary from releases, runs it in your checkout, and exposes the calculated
 version and its components as step outputs.
 
-Reference it as `wyrd-company/tagver@v0`.
+Pre-1.0 consumers pin the Action to an exact release tag. The current release
+is `wyrd-company/tagver@0.1.5`.
 
 ## Inputs
 
@@ -16,14 +17,14 @@ All inputs are optional.
 
 | Input | Description | Default |
 | --- | --- | --- |
-| `tag-prefix` | Tag prefix to filter tags (e.g. `v` for `v1.0.0`) | none |
+| `tag-prefix` | Tag prefix to filter tags (e.g. `release-` for `release-1.0.0`) | none |
 | `auto-increment` | Auto-increment policy: `major`, `minor`, `patch` | none |
 | `default-pre-release-identifiers` | Default pre-release identifiers (e.g. `alpha.0`) | none |
 | `minimum-major-minor` | Minimum `major.minor` version constraint (e.g. `1.0`) | none |
 | `build-metadata` | Build metadata to append to versions | none |
 | `ignore-height` | Ignore height in version calculation | `false` |
 | `working-directory` | Working directory to analyze | `.` |
-| `tagver-version` | Version of tagver to download (e.g. `v0.1.0`, or `latest`) | `latest` |
+| `tagver-version` | Version of tagver to download (e.g. `0.1.5`, or `latest`) | `latest` |
 
 ## Outputs
 
@@ -49,9 +50,9 @@ steps:
 
   - name: Calculate version
     id: tagver
-    uses: wyrd-company/tagver@v0
+    uses: wyrd-company/tagver@0.1.5
     with: # all optional
-      tag-prefix: 'v'
+      tag-prefix: 'release-'
       auto-increment: patch
       default-pre-release-identifiers: 'alpha.0'
       minimum-major-minor: '1.0'
@@ -70,6 +71,7 @@ steps:
       echo "Build-metadata: ${{ steps.tagver.outputs.build-metadata }}"
 ```
 
-> The Action runs on Linux, macOS, and Windows runners. It selects the matching
-> release asset for the runner's OS and architecture, so `fetch-depth: 0` on
-> `actions/checkout` is the only requirement for accurate height calculation.
+> The Action supports Linux x86_64 and arm64, macOS arm64, and Windows x86_64.
+> It selects the matching release asset, so `fetch-depth: 0` on
+> `actions/checkout` provides the complete history needed for accurate height
+> calculation.

@@ -21,7 +21,7 @@ to the current directory (`.`).
 
 | Flag | Description | Default |
 | --- | --- | --- |
-| `-t, --tag-prefix <PREFIX>` | Only consider tags with this prefix (e.g. `v`) | empty (all tags) |
+| `-t, --tag-prefix <PREFIX>` | Only consider tags with this prefix (e.g. `release-`) | empty (all tags) |
 | `-a, --auto-increment <PART>` | Part to bump for the next version: `major`, `minor`, `patch` | `patch` |
 | `-p, --default-pre-release-identifiers <IDS>` | Dot-separated pre-release identifiers (e.g. `alpha.0`) | `alpha.0` |
 | `-m, --minimum-major-minor <MAJOR.MINOR>` | Floor the version at this `major.minor` (e.g. `1.0`) | none |
@@ -30,8 +30,9 @@ to the current directory (`.`).
 | `-f, --format <FORMAT>` | Output format: `text` or `json` | `text` |
 | `-v, --verbosity <LEVEL>` | Log verbosity: `quiet`, `normal`, `verbose`, `debug`, `trace` | `normal` |
 
-Every option except `--format` and `--verbosity` can also be set via an
-environment variable — see [Configuration](config).
+The calculation flags and `--verbosity` have `TAGVER_*` environment-variable
+equivalents. The working-directory positional argument and `--format` do not.
+See [Configuration](config).
 
 ## JSON output
 
@@ -48,7 +49,7 @@ tagver --format json
   "major": 1,
   "minor": 0,
   "patch": 1,
-  "pre_release": "alpha.0.5",
+  "pre_release": ["alpha", "0", "5"],
   "build_metadata": null,
   "height": 5,
   "is_from_tag": false
@@ -57,7 +58,7 @@ tagver --format json
 
 - `version` — the full calculated SemVer string.
 - `major`, `minor`, `patch` — numeric version components.
-- `pre_release` — the pre-release identifiers (empty when none).
+- `pre_release` — an array of pre-release identifiers (empty when none).
 - `build_metadata` — the build metadata, or `null` when none.
 - `height` — commits between `HEAD` and the base tag.
 - `is_from_tag` — `true` when `HEAD` sits exactly on a tag.
@@ -65,8 +66,8 @@ tagver --format json
 ## Examples
 
 ```bash
-# Only tags like v1.2.3, bump minor for the next version
-tagver --tag-prefix v --auto-increment minor
+# Only tags like release-1.2.3, bump minor for the next version
+tagver --tag-prefix release- --auto-increment minor
 
 # Floor at 2.0 and stamp build metadata
 tagver --minimum-major-minor 2.0 --build-metadata ci.42
