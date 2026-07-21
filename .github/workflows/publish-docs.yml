@@ -1,0 +1,22 @@
+# Copy this into a tool repository as `.github/workflows/publish-docs.yml`.
+# It publishes that repo's docs/ into the wyrd.foo content tap on release.
+# Requires org secrets WYRD_TOOLS_DOCS_PUBLISHER_APP_ID / _PRIVATE_KEY.
+name: Publish docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: wyrd-company/wyrd.foo/.github/actions/publish-docs@v1
+        with:
+          app-id: ${{ secrets.WYRD_TOOLS_DOCS_PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.WYRD_TOOLS_DOCS_PUBLISHER_PRIVATE_KEY }}
