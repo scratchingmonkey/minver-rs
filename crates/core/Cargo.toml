@@ -18,7 +18,7 @@ no-default-features = false
 
 [dependencies]
 # Core Git functionality
-gix = "0.75"
+gix = "0.87"
 
 # Version parsing and manipulation  
 semver = "1.0"
